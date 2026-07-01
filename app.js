@@ -1,17 +1,14 @@
-const STORAGE_KEY = "putee-pagoda-counter-state-v3";
-const MAX_VISIBLE_BEADS = 108;
+const STORAGE_KEY = "golden-pagoda-level-counter-v1";
 
 const DEFAULT_STATE = {
   projectName: "ပုတီး စေတီ Counter",
-  mantra: "ဂါထာ / ဆုတောင်းစာ",
-  levels: 16,
-  roundsPerLevel: 10,
-  beadsPerRound: 108,
-  quickStep: 1,
-  completedRounds: 0,
-  currentBead: 0,
+  note: "အဆင့်ပြည့်လျှင် စေတီ ၁ ဆူ ပြီးမြောက်သည်",
+  levelsPerPagoda: 16,
+  targetPagodas: 1,
+  levelStep: 1,
+  currentLevel: 0,
+  completedPagodas: 0,
   history: [],
-  savedDate: getTodayKey(),
 };
 
 let state = loadState();
@@ -19,33 +16,27 @@ let saveTimer = 0;
 
 const elements = {
   projectTitle: document.querySelector("#projectTitle"),
-  mantraLine: document.querySelector("#mantraLine"),
+  noteLine: document.querySelector("#noteLine"),
   currentLevelText: document.querySelector("#currentLevelText"),
-  roundInLevelText: document.querySelector("#roundInLevelText"),
-  overallProgressText: document.querySelector("#overallProgressText"),
-  currentBead: document.querySelector("#currentBead"),
-  roundTarget: document.querySelector("#roundTarget"),
+  completedPagodasText: document.querySelector("#completedPagodasText"),
+  totalLevelsText: document.querySelector("#totalLevelsText"),
+  pagodaVisual: document.querySelector("#pagodaVisual"),
   progressText: document.querySelector("#progressText"),
-  beadRing: document.querySelector("#beadRing"),
-  formulaText: document.querySelector("#formulaText"),
-  targetText: document.querySelector("#targetText"),
-  completedRoundsText: document.querySelector("#completedRoundsText"),
+  onePagodaText: document.querySelector("#onePagodaText"),
+  levelProgressText: document.querySelector("#levelProgressText"),
   levelGrid: document.querySelector("#levelGrid"),
   projectNameInput: document.querySelector("#projectNameInput"),
-  mantraInput: document.querySelector("#mantraInput"),
-  levelsInput: document.querySelector("#levelsInput"),
-  roundsPerLevelInput: document.querySelector("#roundsPerLevelInput"),
-  beadsPerRoundInput: document.querySelector("#beadsPerRoundInput"),
-  quickStepInput: document.querySelector("#quickStepInput"),
+  noteInput: document.querySelector("#noteInput"),
+  levelsPerPagodaInput: document.querySelector("#levelsPerPagodaInput"),
+  targetPagodasInput: document.querySelector("#targetPagodasInput"),
+  levelStepInput: document.querySelector("#levelStepInput"),
   saveState: document.querySelector("#saveState"),
-  targetRoundsReport: document.querySelector("#targetRoundsReport"),
-  targetBeadsReport: document.querySelector("#targetBeadsReport"),
-  reportLevel: document.querySelector("#reportLevel"),
-  reportRoundInLevel: document.querySelector("#reportRoundInLevel"),
-  reportCurrent: document.querySelector("#reportCurrent"),
-  reportRounds: document.querySelector("#reportRounds"),
-  reportTotal: document.querySelector("#reportTotal"),
-  reportProgress: document.querySelector("#reportProgress"),
+  targetPagodasReport: document.querySelector("#targetPagodasReport"),
+  targetProgressReport: document.querySelector("#targetProgressReport"),
+  reportCurrentLevel: document.querySelector("#reportCurrentLevel"),
+  reportPagodas: document.querySelector("#reportPagodas"),
+  reportTotalLevels: document.querySelector("#reportTotalLevels"),
+  reportCurrentProgress: document.querySelector("#reportCurrentProgress"),
   historyList: document.querySelector("#historyList"),
 };
 
@@ -53,21 +44,21 @@ document.querySelectorAll(".tab").forEach((tab) => {
   tab.addEventListener("click", () => switchPanel(tab.dataset.panel));
 });
 
-document.querySelector("#tapButton").addEventListener("click", () => increment(state.quickStep));
-document.querySelector("#incrementBtn").addEventListener("click", () => increment(state.quickStep));
-document.querySelector("#decrementBtn").addEventListener("click", decrement);
-document.querySelector("#completeRoundBtn").addEventListener("click", completeRound);
-document.querySelector("#resetRoundBtn").addEventListener("click", resetRound);
-document.querySelector("#resetTodayBtn").addEventListener("click", resetAll);
+document.querySelector("#tapButton").addEventListener("click", () => incrementLevels(state.levelStep));
+document.querySelector("#incrementBtn").addEventListener("click", () => incrementLevels(state.levelStep));
+document.querySelector("#decrementBtn").addEventListener("click", decrementLevel);
+document.querySelector("#completePagodaBtn").addEventListener("click", completePagoda);
+document.querySelector("#resetCurrentBtn").addEventListener("click", resetCurrentPagoda);
+document.querySelector("#resetAllBtn").addEventListener("click", resetAll);
 document.querySelector("#exportBtn").addEventListener("click", exportReportPng);
 document.querySelector("#copySummaryBtn").addEventListener("click", copySummary);
 document.querySelector("#clearHistoryBtn").addEventListener("click", clearHistory);
 
-elements.beadRing.addEventListener("click", () => increment(state.quickStep));
-elements.beadRing.addEventListener("keydown", (event) => {
+elements.pagodaVisual.addEventListener("click", () => incrementLevels(state.levelStep));
+elements.pagodaVisual.addEventListener("keydown", (event) => {
   if (event.key !== "Enter" && event.key !== " ") return;
   event.preventDefault();
-  increment(state.quickStep);
+  incrementLevels(state.levelStep);
 });
 
 document.addEventListener("keydown", (event) => {
@@ -75,7 +66,7 @@ document.addEventListener("keydown", (event) => {
   const isTyping = tagName === "INPUT" || tagName === "TEXTAREA";
   if (isTyping || event.key !== " ") return;
   event.preventDefault();
-  increment(state.quickStep);
+  incrementLevels(state.levelStep);
 });
 
 elements.projectNameInput.addEventListener("input", (event) => {
@@ -83,40 +74,26 @@ elements.projectNameInput.addEventListener("input", (event) => {
   commitState();
 });
 
-elements.mantraInput.addEventListener("input", (event) => {
-  state.mantra = event.target.value.trimStart();
+elements.noteInput.addEventListener("input", (event) => {
+  state.note = event.target.value.trimStart();
   commitState();
 });
 
-elements.levelsInput.addEventListener("input", (event) => {
-  state.levels = clamp(toNumber(event.target.value, DEFAULT_STATE.levels), 1, 100);
-  clampProgressToTarget();
+elements.levelsPerPagodaInput.addEventListener("input", (event) => {
+  state.levelsPerPagoda = clamp(toNumber(event.target.value, DEFAULT_STATE.levelsPerPagoda), 1, 100);
+  state.currentLevel = Math.min(state.currentLevel, state.levelsPerPagoda - 1);
+  state.levelStep = Math.min(state.levelStep, state.levelsPerPagoda);
   commitState();
 });
 
-elements.roundsPerLevelInput.addEventListener("input", (event) => {
-  state.roundsPerLevel = clamp(toNumber(event.target.value, DEFAULT_STATE.roundsPerLevel), 1, 1000);
-  clampProgressToTarget();
+elements.targetPagodasInput.addEventListener("input", (event) => {
+  state.targetPagodas = Math.max(0, toNumber(event.target.value, 0));
   commitState();
 });
 
-elements.beadsPerRoundInput.addEventListener("input", (event) => {
-  state.beadsPerRound = clamp(toNumber(event.target.value, DEFAULT_STATE.beadsPerRound), 1, 1000);
-  state.currentBead = Math.min(state.currentBead, state.beadsPerRound - 1);
+elements.levelStepInput.addEventListener("input", (event) => {
+  state.levelStep = clamp(toNumber(event.target.value, 1), 1, state.levelsPerPagoda);
   commitState();
-});
-
-elements.quickStepInput.addEventListener("input", (event) => {
-  state.quickStep = clamp(toNumber(event.target.value, 1), 1, 108);
-  commitState();
-});
-
-document.querySelectorAll(".preset").forEach((button) => {
-  button.addEventListener("click", () => {
-    state.beadsPerRound = clamp(toNumber(button.dataset.beads, DEFAULT_STATE.beadsPerRound), 1, 1000);
-    state.currentBead = Math.min(state.currentBead, state.beadsPerRound - 1);
-    commitState();
-  });
 });
 
 render();
@@ -126,37 +103,19 @@ function loadState() {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (!saved) return { ...DEFAULT_STATE };
 
-    const loaded = {
+    return {
       projectName: saved.projectName || DEFAULT_STATE.projectName,
-      mantra: saved.mantra ?? DEFAULT_STATE.mantra,
-      levels: clamp(toNumber(saved.levels, DEFAULT_STATE.levels), 1, 100),
-      roundsPerLevel: clamp(toNumber(saved.roundsPerLevel, DEFAULT_STATE.roundsPerLevel), 1, 1000),
-      beadsPerRound: clamp(toNumber(saved.beadsPerRound, DEFAULT_STATE.beadsPerRound), 1, 1000),
-      quickStep: clamp(toNumber(saved.quickStep, 1), 1, 108),
-      completedRounds: Math.max(0, toNumber(saved.completedRounds, 0)),
-      currentBead: Math.max(0, toNumber(saved.currentBead, 0)),
+      note: saved.note ?? DEFAULT_STATE.note,
+      levelsPerPagoda: clamp(toNumber(saved.levelsPerPagoda, DEFAULT_STATE.levelsPerPagoda), 1, 100),
+      targetPagodas: Math.max(0, toNumber(saved.targetPagodas, DEFAULT_STATE.targetPagodas)),
+      levelStep: clamp(toNumber(saved.levelStep, 1), 1, 100),
+      currentLevel: Math.max(0, toNumber(saved.currentLevel, 0)),
+      completedPagodas: Math.max(0, toNumber(saved.completedPagodas, 0)),
       history: Array.isArray(saved.history) ? saved.history.slice(0, 30) : [],
-      savedDate: saved.savedDate || getTodayKey(),
     };
-
-    loaded.currentBead = Math.min(loaded.currentBead, loaded.beadsPerRound - 1);
-    return clampLoadedProgress(loaded);
   } catch {
     return { ...DEFAULT_STATE };
   }
-}
-
-function clampLoadedProgress(nextState) {
-  const targetRounds = nextState.levels * nextState.roundsPerLevel;
-  nextState.completedRounds = Math.min(nextState.completedRounds, targetRounds);
-  if (nextState.completedRounds >= targetRounds) nextState.currentBead = 0;
-  return nextState;
-}
-
-function clampProgressToTarget() {
-  const targetRounds = getTargetRounds();
-  state.completedRounds = Math.min(state.completedRounds, targetRounds);
-  if (state.completedRounds >= targetRounds) state.currentBead = 0;
 }
 
 function commitState() {
@@ -173,61 +132,54 @@ function saveState() {
   }, 220);
 }
 
-function increment(step) {
-  const count = clamp(toNumber(step, 1), 1, 108);
+function incrementLevels(step) {
+  const count = clamp(toNumber(step, 1), 1, state.levelsPerPagoda);
 
   for (let index = 0; index < count; index += 1) {
-    if (isComplete()) break;
-
-    state.currentBead += 1;
-    if (state.currentBead >= state.beadsPerRound) {
-      state.currentBead = 0;
-      state.completedRounds += 1;
+    state.currentLevel += 1;
+    if (state.currentLevel >= state.levelsPerPagoda) {
+      state.currentLevel = 0;
+      state.completedPagodas += 1;
       addHistory();
-      if (isComplete()) break;
     }
   }
 
   commitState();
 }
 
-function decrement() {
-  if (state.currentBead > 0) {
-    state.currentBead -= 1;
+function decrementLevel() {
+  if (state.currentLevel > 0) {
+    state.currentLevel -= 1;
     commitState();
     return;
   }
 
-  if (state.completedRounds <= 0) return;
+  if (state.completedPagodas <= 0) return;
 
-  state.completedRounds -= 1;
-  state.currentBead = state.beadsPerRound - 1;
+  state.completedPagodas -= 1;
+  state.currentLevel = state.levelsPerPagoda - 1;
   state.history.shift();
   commitState();
 }
 
-function completeRound() {
-  if (isComplete()) return;
-
-  state.currentBead = 0;
-  state.completedRounds += 1;
+function completePagoda() {
+  state.currentLevel = 0;
+  state.completedPagodas += 1;
   addHistory();
-  clampProgressToTarget();
   commitState();
 }
 
-function resetRound() {
-  if (!window.confirm("Reset current round only? Completed rounds will stay.")) return;
-  state.currentBead = 0;
+function resetCurrentPagoda() {
+  if (!window.confirm("Reset current pagoda level count? Completed pagodas will stay.")) return;
+  state.currentLevel = 0;
   commitState();
 }
 
 function resetAll() {
-  if (!window.confirm("Reset all ပုတီး စေတီ progress?")) return;
-  state.completedRounds = 0;
-  state.currentBead = 0;
+  if (!window.confirm("Reset all level and pagoda counts?")) return;
+  state.currentLevel = 0;
+  state.completedPagodas = 0;
   state.history = [];
-  state.savedDate = getTodayKey();
   commitState();
 }
 
@@ -237,102 +189,83 @@ function clearHistory() {
 }
 
 function addHistory() {
-  const position = getPositionForRound(state.completedRounds);
   state.history.unshift({
-    level: position.level,
-    roundInLevel: position.roundInLevel,
-    beads: state.beadsPerRound,
+    pagoda: state.completedPagodas,
+    levels: state.levelsPerPagoda,
     time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
   });
   state.history = state.history.slice(0, 30);
 }
 
 function render() {
-  const targetRounds = getTargetRounds();
-  const targetBeads = getTargetBeads();
-  const totalBeads = getTotalBeadsCounted();
-  const roundProgress = getRoundProgress();
-  const overallProgress = getOverallProgress();
-  const position = getCurrentPosition();
+  const totalLevels = getTotalLevels();
+  const currentProgress = getCurrentPagodaProgress();
+  const targetProgress = getTargetProgress();
 
   elements.projectTitle.textContent = state.projectName;
-  elements.mantraLine.textContent = state.mantra || DEFAULT_STATE.mantra;
-  elements.currentLevelText.textContent = `${formatNumber(position.level)} / ${formatNumber(state.levels)}`;
-  elements.roundInLevelText.textContent = `${formatNumber(position.roundInLevel)} / ${formatNumber(state.roundsPerLevel)}`;
-  elements.overallProgressText.textContent = `${overallProgress}%`;
-  elements.currentBead.textContent = formatNumber(state.currentBead);
-  elements.roundTarget.textContent = `of ${formatNumber(state.beadsPerRound)}`;
-  elements.progressText.textContent = `${roundProgress}% of this round`;
-  elements.beadRing.style.setProperty("--progress", `${roundProgress * 3.6}deg`);
-  elements.formulaText.textContent = `${formatNumber(state.levels)} levels x ${formatNumber(state.roundsPerLevel)} rounds x ${formatNumber(state.beadsPerRound)} beads`;
-  elements.targetText.textContent = `${formatNumber(targetRounds)} rounds · ${formatNumber(targetBeads)} beads`;
-  elements.completedRoundsText.textContent = `${formatNumber(state.completedRounds)} / ${formatNumber(targetRounds)} rounds`;
+  elements.noteLine.textContent = state.note || DEFAULT_STATE.note;
+  elements.currentLevelText.textContent = `${formatNumber(state.currentLevel)} / ${formatNumber(state.levelsPerPagoda)}`;
+  elements.completedPagodasText.textContent = formatNumber(state.completedPagodas);
+  elements.totalLevelsText.textContent = formatNumber(totalLevels);
+  elements.progressText.textContent = `${formatNumber(state.currentLevel)} of ${formatNumber(state.levelsPerPagoda)} levels in this pagoda`;
+  elements.onePagodaText.textContent = `${formatNumber(state.levelsPerPagoda)} levels`;
+  elements.levelProgressText.textContent = `${formatNumber(state.currentLevel)} / ${formatNumber(state.levelsPerPagoda)} levels`;
 
   elements.projectNameInput.value = state.projectName;
-  elements.mantraInput.value = state.mantra;
-  elements.levelsInput.value = state.levels;
-  elements.roundsPerLevelInput.value = state.roundsPerLevel;
-  elements.beadsPerRoundInput.value = state.beadsPerRound;
-  elements.quickStepInput.value = state.quickStep;
+  elements.noteInput.value = state.note;
+  elements.levelsPerPagodaInput.value = state.levelsPerPagoda;
+  elements.targetPagodasInput.value = state.targetPagodas;
+  elements.levelStepInput.value = state.levelStep;
+  elements.levelStepInput.max = state.levelsPerPagoda;
 
-  elements.targetRoundsReport.textContent = formatNumber(targetRounds);
-  elements.targetBeadsReport.textContent = formatNumber(targetBeads);
-  elements.reportLevel.textContent = `${formatNumber(position.level)} / ${formatNumber(state.levels)}`;
-  elements.reportRoundInLevel.textContent = `${formatNumber(position.roundInLevel)} / ${formatNumber(state.roundsPerLevel)}`;
-  elements.reportCurrent.textContent = `${formatNumber(state.currentBead)} / ${formatNumber(state.beadsPerRound)}`;
-  elements.reportRounds.textContent = formatNumber(state.completedRounds);
-  elements.reportTotal.textContent = formatNumber(totalBeads);
-  elements.reportProgress.textContent = `${overallProgress}%`;
+  elements.targetPagodasReport.textContent = state.targetPagodas ? formatNumber(state.targetPagodas) : "No target";
+  elements.targetProgressReport.textContent = state.targetPagodas ? `${targetProgress}%` : "-";
+  elements.reportCurrentLevel.textContent = `${formatNumber(state.currentLevel)} / ${formatNumber(state.levelsPerPagoda)}`;
+  elements.reportPagodas.textContent = formatNumber(state.completedPagodas);
+  elements.reportTotalLevels.textContent = formatNumber(totalLevels);
+  elements.reportCurrentProgress.textContent = `${currentProgress}%`;
 
-  document.querySelectorAll(".preset").forEach((button) => {
-    button.classList.toggle("is-active", toNumber(button.dataset.beads, 0) === state.beadsPerRound);
-  });
-
-  renderBeads(roundProgress);
-  renderLevels();
+  renderPagoda();
+  renderLevelGrid();
   renderHistory();
 }
 
-function renderBeads(progress) {
+function renderPagoda() {
   const fragment = document.createDocumentFragment();
-  const beadCount = Math.min(state.beadsPerRound, MAX_VISIBLE_BEADS);
-  const activeCount = Math.round((progress / 100) * beadCount);
-  const dotSize = beadCount > 80 ? 12 : beadCount > 54 ? 15 : 19;
+  const levelCount = state.levelsPerPagoda;
+  const topToBottom = Array.from({ length: levelCount }, (_, index) => levelCount - index);
 
-  for (let index = 0; index < beadCount; index += 1) {
-    const angle = (Math.PI * 2 * index) / beadCount - Math.PI / 2;
-    const bead = document.createElement("span");
-    bead.className = `bead-dot${index < activeCount ? " is-active" : ""}`;
-    bead.style.setProperty("--left", `${50 + Math.cos(angle) * 46}%`);
-    bead.style.setProperty("--top", `${50 + Math.sin(angle) * 46}%`);
-    bead.style.setProperty("--dot-size", `${dotSize}px`);
-    fragment.append(bead);
-  }
+  topToBottom.forEach((levelFromBottom, index) => {
+    const layer = document.createElement("div");
+    const width = 22 + (index / Math.max(1, levelCount - 1)) * 76;
+    const height = index < 4 ? 27 : index < 9 ? 34 : 42;
+    const isFilled = levelFromBottom <= state.currentLevel;
 
-  const center = elements.beadRing.querySelector(".ring-center");
-  elements.beadRing.replaceChildren(fragment, center);
+    layer.className = `pagoda-layer${isFilled ? " is-filled" : ""}`;
+    layer.style.setProperty("--w", `${width}%`);
+    layer.style.setProperty("--h", `${height}px`);
+    layer.style.setProperty("--delay", `${index * 18}ms`);
+    layer.title = `Level ${levelFromBottom}`;
+    layer.innerHTML = `
+      <span>${formatNumber(levelFromBottom)}</span>
+    `;
+    fragment.append(layer);
+  });
+
+  elements.pagodaVisual.replaceChildren(fragment);
 }
 
-function renderLevels() {
+function renderLevelGrid() {
   const fragment = document.createDocumentFragment();
-  const current = getCurrentPosition();
 
-  for (let index = 0; index < state.levels; index += 1) {
-    const level = index + 1;
-    const completedForLevel = clamp(
-      state.completedRounds - index * state.roundsPerLevel,
-      0,
-      state.roundsPerLevel,
-    );
+  for (let level = 1; level <= state.levelsPerPagoda; level += 1) {
     const tile = document.createElement("article");
     tile.className = "level-tile";
-    tile.classList.toggle("is-complete", completedForLevel >= state.roundsPerLevel);
-    tile.classList.toggle("is-active", !isComplete() && current.level === level);
+    tile.classList.toggle("is-complete", level <= state.currentLevel);
+    tile.classList.toggle("is-active", level === state.currentLevel + 1 && state.currentLevel < state.levelsPerPagoda);
     tile.innerHTML = `
-      <div>
-        <strong>${formatNumber(level)}</strong>
-        <span>${formatNumber(completedForLevel)} / ${formatNumber(state.roundsPerLevel)}</span>
-      </div>
+      <strong>${formatNumber(level)}</strong>
+      <span>${level <= state.currentLevel ? "Done" : "Level"}</span>
     `;
     fragment.append(tile);
   }
@@ -342,7 +275,7 @@ function renderLevels() {
 
 function renderHistory() {
   if (!state.history.length) {
-    elements.historyList.innerHTML = `<div class="empty-history">No completed rounds yet</div>`;
+    elements.historyList.innerHTML = `<div class="empty-history">No completed pagodas yet</div>`;
     return;
   }
 
@@ -352,7 +285,7 @@ function renderHistory() {
     row.className = "history-item";
     row.innerHTML = `
       <span>${escapeHtml(item.time || "")}</span>
-      <strong>Level ${formatNumber(item.level)} · Round ${formatNumber(item.roundInLevel)} · ${formatNumber(item.beads)} beads</strong>
+      <strong>Pagoda ${formatNumber(item.pagoda)} · ${formatNumber(item.levels)} levels</strong>
     `;
     fragment.append(row);
   });
@@ -394,17 +327,14 @@ async function copySummary() {
 }
 
 function buildSummaryText() {
-  const position = getCurrentPosition();
   return [
     state.projectName,
-    state.mantra,
-    `Formula: ${state.levels} levels x ${state.roundsPerLevel} rounds x ${state.beadsPerRound} beads`,
-    `Current level: ${position.level} / ${state.levels}`,
-    `Round in level: ${position.roundInLevel} / ${state.roundsPerLevel}`,
-    `Current bead: ${state.currentBead} / ${state.beadsPerRound}`,
-    `Completed rounds: ${state.completedRounds} / ${getTargetRounds()}`,
-    `Total beads: ${getTotalBeadsCounted()} / ${getTargetBeads()}`,
-    `Progress: ${getOverallProgress()}%`,
+    state.note,
+    `Current level: ${state.currentLevel} / ${state.levelsPerPagoda}`,
+    `Completed pagodas: ${state.completedPagodas}`,
+    `Total levels counted: ${getTotalLevels()}`,
+    `Target pagodas: ${state.targetPagodas || "No target"}`,
+    `Target progress: ${state.targetPagodas ? `${getTargetProgress()}%` : "-"}`,
   ].join("\n");
 }
 
@@ -416,95 +346,74 @@ function exportReportPng() {
   canvas.height = height;
 
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#f7f6ef";
+  const goldGradient = ctx.createLinearGradient(0, 0, width, height);
+  goldGradient.addColorStop(0, "#fff8dc");
+  goldGradient.addColorStop(0.48, "#f7d86d");
+  goldGradient.addColorStop(1, "#b66f06");
+
+  ctx.fillStyle = "#fffaf0";
   ctx.fillRect(0, 0, width, height);
 
-  ctx.fillStyle = "#17201d";
+  ctx.fillStyle = "#17130a";
   ctx.font = '800 52px "Myanmar Text", Arial, sans-serif';
   drawWrappedText(ctx, state.projectName, 70, 95, 940, 58);
 
-  ctx.fillStyle = "#64716c";
+  ctx.fillStyle = "#6d5a22";
   ctx.font = '700 28px "Myanmar Text", Arial, sans-serif';
-  drawWrappedText(ctx, state.mantra || DEFAULT_STATE.mantra, 70, 175, 940, 36);
+  drawWrappedText(ctx, state.note || DEFAULT_STATE.note, 70, 175, 940, 36);
 
-  drawExportRing(ctx, 540, 510, 270);
-  drawExportMetrics(ctx, 70, 850, 940);
+  drawExportPagoda(ctx, 180, 260, 720, 570, goldGradient);
+  drawExportMetrics(ctx, 70, 900, 940);
 
   const link = document.createElement("a");
-  link.download = `putee-pagoda-counter-${getTodayKey()}.png`;
+  link.download = `golden-pagoda-counter-${getTodayKey()}.png`;
   link.href = canvas.toDataURL("image/png");
   link.click();
 }
 
-function drawExportRing(ctx, centerX, centerY, radius) {
-  const beadCount = Math.min(state.beadsPerRound, MAX_VISIBLE_BEADS);
-  const progress = getRoundProgress() / 100;
-  const activeCount = Math.round(progress * beadCount);
+function drawExportPagoda(ctx, x, y, width, height, fillStyle) {
+  const levels = state.levelsPerPagoda;
+  const gap = 5;
+  const layerHeight = Math.max(18, (height - levels * gap) / levels);
 
-  ctx.lineWidth = 32;
-  ctx.strokeStyle = "rgba(22, 115, 95, 0.14)";
-  ctx.beginPath();
-  ctx.arc(centerX, centerY, radius - 42, 0, Math.PI * 2);
-  ctx.stroke();
+  ctx.save();
+  ctx.translate(x, y);
 
-  ctx.strokeStyle = "#16735f";
-  ctx.beginPath();
-  ctx.arc(centerX, centerY, radius - 42, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
-  ctx.stroke();
+  for (let index = 0; index < levels; index += 1) {
+    const levelFromBottom = levels - index;
+    const layerWidth = width * (0.24 + (index / Math.max(1, levels - 1)) * 0.74);
+    const layerX = (width - layerWidth) / 2;
+    const layerY = index * (layerHeight + gap);
+    const filled = levelFromBottom <= state.currentLevel;
 
-  for (let index = 0; index < beadCount; index += 1) {
-    const angle = (Math.PI * 2 * index) / beadCount - Math.PI / 2;
-    const x = centerX + Math.cos(angle) * radius;
-    const y = centerY + Math.sin(angle) * radius;
-    ctx.fillStyle = index < activeCount ? "#dba522" : "#f5df9f";
-    ctx.strokeStyle = "rgba(116, 78, 15, 0.25)";
-    ctx.beginPath();
-    ctx.arc(x, y, beadCount > 80 ? 8 : 11, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
+    roundedRect(ctx, layerX, layerY, layerWidth, layerHeight, 8, filled ? fillStyle : "#f4e1a3", "#b98518");
+    ctx.fillStyle = filled ? "#2d1c05" : "#80642a";
+    ctx.font = '800 22px "Segoe UI", Arial, sans-serif';
+    ctx.textAlign = "center";
+    ctx.fillText(String(levelFromBottom), width / 2, layerY + layerHeight * 0.67);
   }
 
-  ctx.fillStyle = "#ffffff";
-  ctx.beginPath();
-  ctx.arc(centerX, centerY, 142, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = "#d8dfda";
-  ctx.stroke();
-
-  ctx.fillStyle = "#64716c";
-  ctx.font = '800 26px "Myanmar Text", Arial, sans-serif';
-  ctx.textAlign = "center";
-  ctx.fillText("ယခုအလုံး", centerX, centerY - 50);
-
-  ctx.fillStyle = "#17201d";
-  ctx.font = '900 92px "Segoe UI", Arial, sans-serif';
-  ctx.fillText(formatNumber(state.currentBead), centerX, centerY + 36);
-
-  ctx.fillStyle = "#64716c";
-  ctx.font = '800 28px "Segoe UI", Arial, sans-serif';
-  ctx.fillText(`of ${formatNumber(state.beadsPerRound)}`, centerX, centerY + 84);
+  ctx.restore();
   ctx.textAlign = "start";
 }
 
 function drawExportMetrics(ctx, x, y, width) {
-  const position = getCurrentPosition();
   const items = [
-    ["Formula", `${formatNumber(state.levels)} x ${formatNumber(state.roundsPerLevel)} x ${formatNumber(state.beadsPerRound)}`],
-    ["Current level", `${formatNumber(position.level)} / ${formatNumber(state.levels)}`],
-    ["Round in level", `${formatNumber(position.roundInLevel)} / ${formatNumber(state.roundsPerLevel)}`],
-    ["Completed rounds", `${formatNumber(state.completedRounds)} / ${formatNumber(getTargetRounds())}`],
-    ["Total beads", `${formatNumber(getTotalBeadsCounted())} / ${formatNumber(getTargetBeads())}`],
-    ["Overall progress", `${getOverallProgress()}%`],
+    ["Current level", `${formatNumber(state.currentLevel)} / ${formatNumber(state.levelsPerPagoda)}`],
+    ["Completed pagodas", formatNumber(state.completedPagodas)],
+    ["Total levels counted", formatNumber(getTotalLevels())],
+    ["Target pagodas", state.targetPagodas ? formatNumber(state.targetPagodas) : "No target"],
+    ["Target progress", state.targetPagodas ? `${getTargetProgress()}%` : "-"],
   ];
 
   const rowHeight = 74;
   items.forEach(([label, value], index) => {
     const rowY = y + index * rowHeight;
-    roundedRect(ctx, x, rowY, width, 54, 8, "#ffffff", "#d8dfda");
-    ctx.fillStyle = "#64716c";
+    roundedRect(ctx, x, rowY, width, 54, 8, "#ffffff", "#dfc576");
+    ctx.fillStyle = "#6d5a22";
     ctx.font = '700 22px "Segoe UI", Arial, sans-serif';
     ctx.fillText(label, x + 24, rowY + 35);
-    ctx.fillStyle = "#16735f";
+    ctx.fillStyle = "#9a6408";
     ctx.font = '900 27px "Myanmar Text", Arial, sans-serif';
     ctx.textAlign = "right";
     ctx.fillText(value, x + width - 24, rowY + 36);
@@ -512,49 +421,18 @@ function drawExportMetrics(ctx, x, y, width) {
   });
 }
 
-function getCurrentPosition() {
-  if (isComplete()) {
-    return { level: state.levels, roundInLevel: state.roundsPerLevel };
-  }
-
-  return {
-    level: Math.floor(state.completedRounds / state.roundsPerLevel) + 1,
-    roundInLevel: (state.completedRounds % state.roundsPerLevel) + 1,
-  };
+function getTotalLevels() {
+  return state.completedPagodas * state.levelsPerPagoda + state.currentLevel;
 }
 
-function getPositionForRound(completedRoundNumber) {
-  const safeRound = Math.max(1, completedRoundNumber);
-  return {
-    level: Math.ceil(safeRound / state.roundsPerLevel),
-    roundInLevel: ((safeRound - 1) % state.roundsPerLevel) + 1,
-  };
+function getCurrentPagodaProgress() {
+  return Math.round((state.currentLevel / state.levelsPerPagoda) * 100);
 }
 
-function getTargetRounds() {
-  return state.levels * state.roundsPerLevel;
-}
-
-function getTargetBeads() {
-  return getTargetRounds() * state.beadsPerRound;
-}
-
-function getTotalBeadsCounted() {
-  return state.completedRounds * state.beadsPerRound + state.currentBead;
-}
-
-function getRoundProgress() {
-  return Math.round((state.currentBead / state.beadsPerRound) * 100);
-}
-
-function getOverallProgress() {
-  const targetBeads = getTargetBeads();
-  if (!targetBeads) return 0;
-  return Math.min(100, Math.round((getTotalBeadsCounted() / targetBeads) * 100));
-}
-
-function isComplete() {
-  return state.completedRounds >= getTargetRounds() && state.currentBead === 0;
+function getTargetProgress() {
+  if (!state.targetPagodas) return 0;
+  const targetLevels = state.targetPagodas * state.levelsPerPagoda;
+  return Math.min(100, Math.round((getTotalLevels() / targetLevels) * 100));
 }
 
 function roundedRect(ctx, x, y, width, height, radius, fill, stroke) {

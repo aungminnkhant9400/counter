@@ -11,80 +11,76 @@
     <div class="app-shell">
       <header class="topbar">
         <div class="title-block">
-          <p class="eyebrow">Putee Pagoda Counter</p>
+          <p class="eyebrow">Golden Pagoda Level Counter</p>
           <h1 id="projectTitle">ပုတီး စေတီ Counter</h1>
-          <p id="mantraLine" class="subtitle">ဂါထာ / ဆုတောင်းစာ</p>
+          <p id="noteLine" class="subtitle">အဆင့်ပြည့်လျှင် စေတီ ၁ ဆူ ပြီးမြောက်သည်</p>
         </div>
         <div class="top-actions" aria-label="Actions">
-          <button class="button subtle" id="resetTodayBtn" type="button">↺ Reset All</button>
-          <button class="button primary" id="exportBtn" type="button">⇩ Export PNG</button>
+          <button class="button subtle" id="resetAllBtn" type="button">Reset All</button>
+          <button class="button primary" id="exportBtn" type="button">Export PNG</button>
         </div>
       </header>
 
       <main class="layout">
         <section class="counter-workspace" aria-labelledby="projectTitle">
-          <div class="summary-strip" aria-label="Formula summary">
+          <div class="summary-strip" aria-label="Counter summary">
             <article class="metric">
               <span>Current Level</span>
-              <strong id="currentLevelText">1 / 16</strong>
+              <strong id="currentLevelText">0 / 16</strong>
             </article>
             <article class="metric">
-              <span>Round In Level</span>
-              <strong id="roundInLevelText">1 / 10</strong>
+              <span>Completed Pagodas</span>
+              <strong id="completedPagodasText">0</strong>
             </article>
             <article class="metric">
-              <span>Total Progress</span>
-              <strong id="overallProgressText">0%</strong>
+              <span>Total Levels</span>
+              <strong id="totalLevelsText">0</strong>
             </article>
           </div>
 
-          <section class="counter-panel" aria-label="Putee counter">
-            <div class="bead-stage">
-              <div class="bead-ring" id="beadRing" role="button" tabindex="0" aria-label="Count one bead">
-                <div class="ring-center">
-                  <span>ယခုအလုံး</span>
-                  <strong id="currentBead">0</strong>
-                  <em id="roundTarget">of 108</em>
-                </div>
-              </div>
-              <button class="tap-button" id="tapButton" type="button">Count ပုတီး</button>
-              <p id="progressText" class="progress-text">0% of this round</p>
+          <section class="pagoda-panel" aria-label="Golden pagoda counter">
+            <div class="pagoda-stage">
+              <div class="pagoda-aura" aria-hidden="true"></div>
+              <div class="pagoda-flag" aria-hidden="true"></div>
+              <div class="golden-pagoda" id="pagodaVisual" role="button" tabindex="0" aria-label="Count one level"></div>
+              <button class="tap-button" id="tapButton" type="button">Count Level</button>
+              <p id="progressText" class="progress-text">0 of 16 levels in this pagoda</p>
             </div>
           </section>
 
           <section class="quick-controls" aria-label="Quick controls">
-            <button class="control-button" id="decrementBtn" type="button">−1</button>
-            <button class="control-button" id="incrementBtn" type="button">+1</button>
-            <button class="control-button accent" id="completeRoundBtn" type="button">Complete Round</button>
-            <button class="control-button" id="resetRoundBtn" type="button">Reset Round</button>
+            <button class="control-button" id="decrementBtn" type="button">-1 Level</button>
+            <button class="control-button" id="incrementBtn" type="button">+1 Level</button>
+            <button class="control-button accent" id="completePagodaBtn" type="button">Complete Pagoda</button>
+            <button class="control-button" id="resetCurrentBtn" type="button">Reset Current</button>
           </section>
 
-          <section class="formula-panel" aria-label="Formula from image">
+          <section class="formula-panel" aria-label="Counting mode">
             <div>
-              <span>Formula From Image</span>
-              <strong id="formulaText">16 levels × 10 rounds × 108 beads</strong>
+              <span>Counting Mode</span>
+              <strong>Level count builds one pagoda</strong>
             </div>
             <div>
-              <span>Full Target</span>
-              <strong id="targetText">160 rounds · 17,280 beads</strong>
+              <span>One Pagoda</span>
+              <strong id="onePagodaText">16 levels</strong>
             </div>
           </section>
 
           <section class="level-panel" aria-label="Pagoda level progress">
             <div class="section-head compact">
-              <h2>စေတီ အဆင့် Progress</h2>
-              <span id="completedRoundsText">0 / 160 rounds</span>
+              <h2>Current Pagoda Levels</h2>
+              <span id="levelProgressText">0 / 16 levels</span>
             </div>
             <div class="level-grid" id="levelGrid"></div>
           </section>
 
           <section class="reference-strip" aria-label="Reference images">
             <figure>
-              <img src="assets/reference-clean.jpg" alt="Putee reference chart" />
+              <img src="assets/reference-clean.jpg" alt="Pagoda reference chart" />
               <figcaption>Reference A</figcaption>
             </figure>
             <figure>
-              <img src="assets/reference-original.jpg" alt="Original putee reference chart" />
+              <img src="assets/reference-original.jpg" alt="Original pagoda reference chart" />
               <figcaption>Reference B</figcaption>
             </figure>
           </section>
@@ -98,7 +94,7 @@
 
           <section class="panel-view is-active" id="settingsPanel">
             <div class="section-head">
-              <h2>ပုတီး စေတီ Setup</h2>
+              <h2>Counter Setup</h2>
               <span id="saveState">Saved</span>
             </div>
 
@@ -107,77 +103,59 @@
               <input id="projectNameInput" type="text" autocomplete="off" />
             </div>
             <div class="field-group">
-              <label for="mantraInput">ဂါထာ / ဆုတောင်းစာ</label>
-              <textarea id="mantraInput" rows="3"></textarea>
+              <label for="noteInput">Note / Prayer</label>
+              <textarea id="noteInput" rows="3"></textarea>
             </div>
             <div class="field-grid">
               <div class="field-group">
-              <label for="levelsInput">စေတီ Levels</label>
-              <input id="levelsInput" type="number" min="1" max="100" step="1" inputmode="numeric" />
-            </div>
-            <div class="field-group">
-                <label for="roundsPerLevelInput">Rounds Per Level</label>
-                <input id="roundsPerLevelInput" type="number" min="1" max="1000" step="1" inputmode="numeric" />
+                <label for="levelsPerPagodaInput">Levels Per Pagoda</label>
+                <input id="levelsPerPagodaInput" type="number" min="1" max="100" step="1" inputmode="numeric" />
+              </div>
+              <div class="field-group">
+                <label for="targetPagodasInput">Target Pagodas</label>
+                <input id="targetPagodasInput" type="number" min="0" max="10000" step="1" inputmode="numeric" />
               </div>
             </div>
             <div class="field-group">
-              <label for="beadsPerRoundInput">Beads Per Round</label>
-              <input id="beadsPerRoundInput" type="number" min="1" max="1000" step="1" inputmode="numeric" />
-            </div>
-            <div class="field-group">
-              <label for="quickStepInput">Tap Step</label>
-              <input id="quickStepInput" type="number" min="1" max="108" step="1" inputmode="numeric" />
-            </div>
-
-            <div class="preset-row" aria-label="Bead presets">
-              <button class="preset" type="button" data-beads="27">27</button>
-              <button class="preset" type="button" data-beads="54">54</button>
-              <button class="preset" type="button" data-beads="108">108</button>
+              <label for="levelStepInput">Tap Step</label>
+              <input id="levelStepInput" type="number" min="1" max="16" step="1" inputmode="numeric" />
             </div>
           </section>
 
           <section class="panel-view" id="reportPanel">
             <div class="report-card">
               <div>
-                <span>Target Rounds</span>
-                <strong id="targetRoundsReport">160</strong>
+                <span>Target Pagodas</span>
+                <strong id="targetPagodasReport">1</strong>
               </div>
               <div>
-                <span>Target Beads</span>
-                <strong id="targetBeadsReport">17,280</strong>
+                <span>Target Progress</span>
+                <strong id="targetProgressReport">0%</strong>
               </div>
             </div>
 
             <div class="report-list">
               <article class="report-row">
                 <span>Current level</span>
-                <strong id="reportLevel">1 / 16</strong>
+                <strong id="reportCurrentLevel">0 / 16</strong>
               </article>
               <article class="report-row">
-                <span>Round in level</span>
-                <strong id="reportRoundInLevel">1 / 10</strong>
+                <span>Completed pagodas</span>
+                <strong id="reportPagodas">0</strong>
               </article>
               <article class="report-row">
-                <span>Current bead</span>
-                <strong id="reportCurrent">0 / 108</strong>
+                <span>Total levels counted</span>
+                <strong id="reportTotalLevels">0</strong>
               </article>
               <article class="report-row">
-                <span>Completed rounds</span>
-                <strong id="reportRounds">0</strong>
-              </article>
-              <article class="report-row">
-                <span>Total counted</span>
-                <strong id="reportTotal">0</strong>
-              </article>
-              <article class="report-row">
-                <span>Overall progress</span>
-                <strong id="reportProgress">0%</strong>
+                <span>Current pagoda progress</span>
+                <strong id="reportCurrentProgress">0%</strong>
               </article>
             </div>
 
             <div class="history-block">
               <div class="section-head compact">
-                <h2>Recent Rounds</h2>
+                <h2>Completed Pagodas</h2>
                 <button class="text-button" id="clearHistoryBtn" type="button">Clear</button>
               </div>
               <div id="historyList" class="history-list"></div>
