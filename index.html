@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="my">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ပုတီး စေတီ Counter</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="title-block">
+          <p class="eyebrow">Putee Pagoda Counter</p>
+          <h1 id="projectTitle">ပုတီး စေတီ Counter</h1>
+          <p id="mantraLine" class="subtitle">ဂါထာ / ဆုတောင်းစာ</p>
+        </div>
+        <div class="top-actions" aria-label="Actions">
+          <button class="button subtle" id="resetTodayBtn" type="button">↺ Reset All</button>
+          <button class="button primary" id="exportBtn" type="button">⇩ Export PNG</button>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="counter-workspace" aria-labelledby="projectTitle">
+          <div class="summary-strip" aria-label="Formula summary">
+            <article class="metric">
+              <span>Current Level</span>
+              <strong id="currentLevelText">1 / 16</strong>
+            </article>
+            <article class="metric">
+              <span>Round In Level</span>
+              <strong id="roundInLevelText">1 / 10</strong>
+            </article>
+            <article class="metric">
+              <span>Total Progress</span>
+              <strong id="overallProgressText">0%</strong>
+            </article>
+          </div>
+
+          <section class="counter-panel" aria-label="Putee counter">
+            <div class="bead-stage">
+              <div class="bead-ring" id="beadRing" role="button" tabindex="0" aria-label="Count one bead">
+                <div class="ring-center">
+                  <span>ယခုအလုံး</span>
+                  <strong id="currentBead">0</strong>
+                  <em id="roundTarget">of 108</em>
+                </div>
+              </div>
+              <button class="tap-button" id="tapButton" type="button">Count ပုတီး</button>
+              <p id="progressText" class="progress-text">0% of this round</p>
+            </div>
+          </section>
+
+          <section class="quick-controls" aria-label="Quick controls">
+            <button class="control-button" id="decrementBtn" type="button">−1</button>
+            <button class="control-button" id="incrementBtn" type="button">+1</button>
+            <button class="control-button accent" id="completeRoundBtn" type="button">Complete Round</button>
+            <button class="control-button" id="resetRoundBtn" type="button">Reset Round</button>
+          </section>
+
+          <section class="formula-panel" aria-label="Formula from image">
+            <div>
+              <span>Formula From Image</span>
+              <strong id="formulaText">16 levels × 10 rounds × 108 beads</strong>
+            </div>
+            <div>
+              <span>Full Target</span>
+              <strong id="targetText">160 rounds · 17,280 beads</strong>
+            </div>
+          </section>
+
+          <section class="level-panel" aria-label="Pagoda level progress">
+            <div class="section-head compact">
+              <h2>စေတီ အဆင့် Progress</h2>
+              <span id="completedRoundsText">0 / 160 rounds</span>
+            </div>
+            <div class="level-grid" id="levelGrid"></div>
+          </section>
+
+          <section class="reference-strip" aria-label="Reference images">
+            <figure>
+              <img src="assets/reference-clean.jpg" alt="Putee reference chart" />
+              <figcaption>Reference A</figcaption>
+            </figure>
+            <figure>
+              <img src="assets/reference-original.jpg" alt="Original putee reference chart" />
+              <figcaption>Reference B</figcaption>
+            </figure>
+          </section>
+        </section>
+
+        <aside class="side-panel" aria-label="Settings and report">
+          <nav class="tabs" aria-label="Panels">
+            <button class="tab is-active" type="button" data-panel="settings">Settings</button>
+            <button class="tab" type="button" data-panel="report">Report</button>
+          </nav>
+
+          <section class="panel-view is-active" id="settingsPanel">
+            <div class="section-head">
+              <h2>ပုတီး စေတီ Setup</h2>
+              <span id="saveState">Saved</span>
+            </div>
+
+            <div class="field-group">
+              <label for="projectNameInput">Counter Name</label>
+              <input id="projectNameInput" type="text" autocomplete="off" />
+            </div>
+            <div class="field-group">
+              <label for="mantraInput">ဂါထာ / ဆုတောင်းစာ</label>
+              <textarea id="mantraInput" rows="3"></textarea>
+            </div>
+            <div class="field-grid">
+              <div class="field-group">
+              <label for="levelsInput">စေတီ Levels</label>
+              <input id="levelsInput" type="number" min="1" max="100" step="1" inputmode="numeric" />
+            </div>
+            <div class="field-group">
+                <label for="roundsPerLevelInput">Rounds Per Level</label>
+                <input id="roundsPerLevelInput" type="number" min="1" max="1000" step="1" inputmode="numeric" />
+              </div>
+            </div>
+            <div class="field-group">
+              <label for="beadsPerRoundInput">Beads Per Round</label>
+              <input id="beadsPerRoundInput" type="number" min="1" max="1000" step="1" inputmode="numeric" />
+            </div>
+            <div class="field-group">
+              <label for="quickStepInput">Tap Step</label>
+              <input id="quickStepInput" type="number" min="1" max="108" step="1" inputmode="numeric" />
+            </div>
+
+            <div class="preset-row" aria-label="Bead presets">
+              <button class="preset" type="button" data-beads="27">27</button>
+              <button class="preset" type="button" data-beads="54">54</button>
+              <button class="preset" type="button" data-beads="108">108</button>
+            </div>
+          </section>
+
+          <section class="panel-view" id="reportPanel">
+            <div class="report-card">
+              <div>
+                <span>Target Rounds</span>
+                <strong id="targetRoundsReport">160</strong>
+              </div>
+              <div>
+                <span>Target Beads</span>
+                <strong id="targetBeadsReport">17,280</strong>
+              </div>
+            </div>
+
+            <div class="report-list">
+              <article class="report-row">
+                <span>Current level</span>
+                <strong id="reportLevel">1 / 16</strong>
+              </article>
+              <article class="report-row">
+                <span>Round in level</span>
+                <strong id="reportRoundInLevel">1 / 10</strong>
+              </article>
+              <article class="report-row">
+                <span>Current bead</span>
+                <strong id="reportCurrent">0 / 108</strong>
+              </article>
+              <article class="report-row">
+                <span>Completed rounds</span>
+                <strong id="reportRounds">0</strong>
+              </article>
+              <article class="report-row">
+                <span>Total counted</span>
+                <strong id="reportTotal">0</strong>
+              </article>
+              <article class="report-row">
+                <span>Overall progress</span>
+                <strong id="reportProgress">0%</strong>
+              </article>
+            </div>
+
+            <div class="history-block">
+              <div class="section-head compact">
+                <h2>Recent Rounds</h2>
+                <button class="text-button" id="clearHistoryBtn" type="button">Clear</button>
+              </div>
+              <div id="historyList" class="history-list"></div>
+            </div>
+
+            <button class="button wide" id="copySummaryBtn" type="button">Copy Summary</button>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
