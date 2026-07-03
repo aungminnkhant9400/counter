@@ -1,6 +1,6 @@
 const STORAGE_KEY = "golden-pagoda-level-counter-v1";
 
-const LEGACY_LEVEL_LABELS = [
+const ORIGINAL_GUESS_LABELS = [
   "ခုနှစ် သရက် ကုန်း",
   "ငါး သရက် ကုန်း",
   "သုံး သရက် ကုန်း",
@@ -19,7 +19,7 @@ const LEGACY_LEVEL_LABELS = [
   "ငှက်မြတ်နား",
 ];
 
-const DEFAULT_LEVEL_LABELS = [
+const PREVIOUS_REFERENCE_LABELS = [
   "ခုနှစ် သရဏဂုံ",
   "ငါး သရဏဂုံ",
   "သုံး သရဏဂုံ",
@@ -38,10 +38,32 @@ const DEFAULT_LEVEL_LABELS = [
   "ပုဒ္ဓါး အထိပ်",
 ];
 
+const LEGACY_LEVEL_LABEL_SETS = [ORIGINAL_GUESS_LABELS, PREVIOUS_REFERENCE_LABELS];
+
+const DEFAULT_LEVEL_LABELS = [
+  "ဗုဒ္ဓံ သရဏံ ဂစ္ဆာမိ",
+  "ဓမ္မံ သရဏံ ဂစ္ဆာမိ",
+  "သံဃံ သရဏံ ဂစ္ဆာမိ",
+  "ဣတိပိသော ဘဂဝါ အရဟံ",
+  "သမ္မာသမ္ဗုဒ္ဓေါ",
+  "ဝိဇ္ဇာစရဏ သမ္ပန္နော",
+  "သုဂတော",
+  "လောကဝိဒူ",
+  "အနုတ္တရော ပုရိသဒမ္မသာရထိ",
+  "သတ္ထာဒေဝမနုဿာနံ",
+  "ဗုဒ္ဓေါ",
+  "ဘဂဝါ",
+  "",
+  "",
+  "",
+  "",
+  "အဆင့် 17",
+];
+
 const DEFAULT_STATE = {
   projectName: "ပုတီး စေတီ Counter",
   note: "အဆင့်ပြည့်လျှင် စေတီ ၁ ဆူ ပြီးမြောက်သည်",
-  levelsPerPagoda: 16,
+  levelsPerPagoda: DEFAULT_LEVEL_LABELS.length,
   targetPagodas: 1,
   levelStep: 1,
   levelLabels: DEFAULT_LEVEL_LABELS,
@@ -148,13 +170,18 @@ function loadState() {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (!saved) return { ...DEFAULT_STATE };
 
+    const normalizedLabels = normalizeLevelLabels(saved.levelLabels);
+    const usesKnownDefaultLabels = matchesAnyLabelSet(saved.levelLabels, LEGACY_LEVEL_LABEL_SETS) || labelsMatch(normalizedLabels, DEFAULT_LEVEL_LABELS);
+
     return {
       projectName: saved.projectName || DEFAULT_STATE.projectName,
       note: saved.note ?? DEFAULT_STATE.note,
-      levelsPerPagoda: clamp(toNumber(saved.levelsPerPagoda, DEFAULT_STATE.levelsPerPagoda), 1, 100),
+      levelsPerPagoda: usesKnownDefaultLabels
+        ? DEFAULT_STATE.levelsPerPagoda
+        : clamp(toNumber(saved.levelsPerPagoda, DEFAULT_STATE.levelsPerPagoda), 1, 100),
       targetPagodas: Math.max(0, toNumber(saved.targetPagodas, DEFAULT_STATE.targetPagodas)),
       levelStep: clamp(toNumber(saved.levelStep, 1), 1, 100),
-      levelLabels: normalizeLevelLabels(saved.levelLabels),
+      levelLabels: normalizedLabels,
       currentLevel: Math.max(0, toNumber(saved.currentLevel, 0)),
       completedPagodas: Math.max(0, toNumber(saved.completedPagodas, 0)),
       history: Array.isArray(saved.history) ? saved.history.slice(0, 30) : [],
@@ -289,12 +316,13 @@ function renderPagoda() {
     const config = getLayerConfig(levelFromBottom, index, levelCount);
     const label = getLevelLabel(levelFromBottom);
     const isFilled = levelFromBottom <= state.currentLevel;
+    const titleText = label ? `${label} - Level ${levelFromBottom}` : `Level ${levelFromBottom}`;
 
     layer.className = `pagoda-layer pagoda-layer--${config.type}${isFilled ? " is-filled" : ""}`;
     layer.style.setProperty("--w", `${config.width}%`);
     layer.style.setProperty("--h", `${config.height}px`);
     layer.style.setProperty("--delay", `${index * 18}ms`);
-    layer.title = `${label} - Level ${levelFromBottom}`;
+    layer.title = titleText;
     layer.innerHTML = `
       <span class="pagoda-label">${escapeHtml(label)}</span>
     `;
@@ -376,11 +404,13 @@ async function copySummary() {
 }
 
 function buildSummaryText() {
+  const currentSection = state.currentLevel ? getLevelLabel(state.currentLevel) || "-" : "-";
+
   return [
     state.projectName,
     state.note,
     `Current level: ${state.currentLevel} / ${state.levelsPerPagoda}`,
-    `Current section: ${state.currentLevel ? getLevelLabel(state.currentLevel) : "-"}`,
+    `Current section: ${currentSection}`,
     `Completed pagodas: ${state.completedPagodas}`,
     `Total levels counted: ${getTotalLevels()}`,
     `Target pagodas: ${state.targetPagodas || "No target"}`,
@@ -592,24 +622,33 @@ function drawCenteredWrappedText(ctx, text, centerX, centerY, maxWidth, lineHeig
 
 function getLevelLabel(levelFromBottom) {
   const normalizedLevel = Math.max(1, Math.round(toNumber(levelFromBottom, 1)));
-  return state.levelLabels[normalizedLevel - 1] || `အဆင့် ${formatNumber(normalizedLevel)}`;
+  const labelIndex = normalizedLevel - 1;
+  if (labelIndex in state.levelLabels) return state.levelLabels[labelIndex];
+  return `အဆင့် ${formatNumber(normalizedLevel)}`;
 }
 
 function normalizeLevelLabels(labels) {
   const savedLabels = Array.isArray(labels) ? labels : [];
   const cleanLabels = savedLabels.map((label) => String(label || "").trim());
 
-  if (labelsMatch(cleanLabels, LEGACY_LEVEL_LABELS)) {
+  if (matchesAnyLabelSet(cleanLabels, LEGACY_LEVEL_LABEL_SETS)) {
     return [...DEFAULT_LEVEL_LABELS];
   }
 
-  const nextLabels = DEFAULT_LEVEL_LABELS.map((label, index) => cleanLabels[index] || label);
+  const nextLabels = DEFAULT_LEVEL_LABELS.map((label, index) => {
+    return index in cleanLabels ? cleanLabels[index] : label;
+  });
 
   cleanLabels.slice(DEFAULT_LEVEL_LABELS.length).forEach((label, index) => {
-    nextLabels[DEFAULT_LEVEL_LABELS.length + index] = label || `အဆင့် ${formatNumber(DEFAULT_LEVEL_LABELS.length + index + 1)}`;
+    nextLabels[DEFAULT_LEVEL_LABELS.length + index] = label;
   });
 
   return nextLabels;
+}
+
+function matchesAnyLabelSet(labels, labelSets) {
+  const cleanLabels = Array.isArray(labels) ? labels.map((label) => String(label || "").trim()) : [];
+  return labelSets.some((labelSet) => labelsMatch(cleanLabels, labelSet));
 }
 
 function labelsMatch(labels, expectedLabels) {
@@ -632,10 +671,11 @@ function getLayerConfig(levelFromBottom, topIndex, levelCount) {
       { width: 48, height: 26, type: "neck" },
       { width: 40, height: 26, type: "neck" },
       { width: 31, height: 25, type: "neck" },
-      { width: 26, height: 40, type: "upper" },
-      { width: 23, height: 40, type: "upper" },
-      { width: 18, height: 38, type: "upper" },
-      { width: 14, height: 30, type: "spire" },
+      { width: 27, height: 30, type: "upper" },
+      { width: 24, height: 30, type: "upper" },
+      { width: 21, height: 28, type: "upper" },
+      { width: 18, height: 27, type: "upper" },
+      { width: 14, height: 28, type: "spire" },
     ];
 
     return configs[levelFromBottom - 1];
