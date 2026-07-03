@@ -1,6 +1,6 @@
 const STORAGE_KEY = "golden-pagoda-level-counter-v1";
 
-const DEFAULT_LEVEL_LABELS = [
+const LEGACY_LEVEL_LABELS = [
   "ခုနှစ် သရက် ကုန်း",
   "ငါး သရက် ကုန်း",
   "သုံး သရက် ကုန်း",
@@ -17,6 +17,25 @@ const DEFAULT_LEVEL_LABELS = [
   "ရင်ဖုံး အဆင့်",
   "ရင်ဖုံး အုပ်",
   "ငှက်မြတ်နား",
+];
+
+const DEFAULT_LEVEL_LABELS = [
+  "ခုနှစ် သရဏဂုံ",
+  "ငါး သရဏဂုံ",
+  "သုံး သရဏဂုံ",
+  "ဣတိပိသော ဘဂဝါ အရဟံ",
+  "သမ္မာသမ္ဗုဒ္ဓေါ",
+  "ဝိဇ္ဇာစရဏသမ္ပန္နော",
+  "သုဂတော",
+  "လောကဝိဒူ",
+  "အနုတ္တရော ပုရိသဒမ္မသာရထိ",
+  "သတ္ထာဒေဝမနုဿာနံ",
+  "ဗုဒ္ဓေါ",
+  "ဘဂဝါ",
+  "ရင်ဖုံး အနိမ့်",
+  "ရင်ဖုံး ကုန်း",
+  "ရင်ဖုံး အဖျား",
+  "ပုဒ္ဓါး အထိပ်",
 ];
 
 const DEFAULT_STATE = {
@@ -579,6 +598,11 @@ function getLevelLabel(levelFromBottom) {
 function normalizeLevelLabels(labels) {
   const savedLabels = Array.isArray(labels) ? labels : [];
   const cleanLabels = savedLabels.map((label) => String(label || "").trim());
+
+  if (labelsMatch(cleanLabels, LEGACY_LEVEL_LABELS)) {
+    return [...DEFAULT_LEVEL_LABELS];
+  }
+
   const nextLabels = DEFAULT_LEVEL_LABELS.map((label, index) => cleanLabels[index] || label);
 
   cleanLabels.slice(DEFAULT_LEVEL_LABELS.length).forEach((label, index) => {
@@ -586,6 +610,11 @@ function normalizeLevelLabels(labels) {
   });
 
   return nextLabels;
+}
+
+function labelsMatch(labels, expectedLabels) {
+  if (labels.length !== expectedLabels.length) return false;
+  return expectedLabels.every((label, index) => labels[index] === label);
 }
 
 function getLayerConfig(levelFromBottom, topIndex, levelCount) {
