@@ -1,11 +1,31 @@
 const STORAGE_KEY = "golden-pagoda-level-counter-v1";
 
+const DEFAULT_LEVEL_LABELS = [
+  "ခုနှစ် သရက် ကုန်း",
+  "ငါး သရက် ကုန်း",
+  "သုံး သရက် ကုန်း",
+  "ကတိဗ္ဗာ တတိယ အဆင့်",
+  "သပိတ်ခံ",
+  "သုံးဆင့်တန်း",
+  "စိန်တောင်",
+  "သပိတ်",
+  "ခေါင်းလောင်း",
+  "အထက်ဌာန ပုံသဏ္ဌာန်",
+  "သပိတ်မှောက်",
+  "ပန်းချီ",
+  "ဘားတန်း",
+  "ရင်ဖုံး အဆင့်",
+  "ရင်ဖုံး အုပ်",
+  "ငှက်မြတ်နား",
+];
+
 const DEFAULT_STATE = {
   projectName: "ပုတီး စေတီ Counter",
   note: "အဆင့်ပြည့်လျှင် စေတီ ၁ ဆူ ပြီးမြောက်သည်",
   levelsPerPagoda: 16,
   targetPagodas: 1,
   levelStep: 1,
+  levelLabels: DEFAULT_LEVEL_LABELS,
   currentLevel: 0,
   completedPagodas: 0,
   history: [],
@@ -30,6 +50,7 @@ const elements = {
   levelsPerPagodaInput: document.querySelector("#levelsPerPagodaInput"),
   targetPagodasInput: document.querySelector("#targetPagodasInput"),
   levelStepInput: document.querySelector("#levelStepInput"),
+  sectionLabelsInput: document.querySelector("#sectionLabelsInput"),
   saveState: document.querySelector("#saveState"),
   targetPagodasReport: document.querySelector("#targetPagodasReport"),
   targetProgressReport: document.querySelector("#targetProgressReport"),
@@ -96,6 +117,11 @@ elements.levelStepInput.addEventListener("input", (event) => {
   commitState();
 });
 
+elements.sectionLabelsInput.addEventListener("input", (event) => {
+  state.levelLabels = normalizeLevelLabels(event.target.value.split(/\r?\n/));
+  commitState();
+});
+
 render();
 
 function loadState() {
@@ -109,6 +135,7 @@ function loadState() {
       levelsPerPagoda: clamp(toNumber(saved.levelsPerPagoda, DEFAULT_STATE.levelsPerPagoda), 1, 100),
       targetPagodas: Math.max(0, toNumber(saved.targetPagodas, DEFAULT_STATE.targetPagodas)),
       levelStep: clamp(toNumber(saved.levelStep, 1), 1, 100),
+      levelLabels: normalizeLevelLabels(saved.levelLabels),
       currentLevel: Math.max(0, toNumber(saved.currentLevel, 0)),
       completedPagodas: Math.max(0, toNumber(saved.completedPagodas, 0)),
       history: Array.isArray(saved.history) ? saved.history.slice(0, 30) : [],
@@ -217,6 +244,9 @@ function render() {
   elements.targetPagodasInput.value = state.targetPagodas;
   elements.levelStepInput.value = state.levelStep;
   elements.levelStepInput.max = state.levelsPerPagoda;
+  if (document.activeElement !== elements.sectionLabelsInput) {
+    elements.sectionLabelsInput.value = state.levelLabels.join("\n");
+  }
 
   elements.targetPagodasReport.textContent = state.targetPagodas ? formatNumber(state.targetPagodas) : "No target";
   elements.targetProgressReport.textContent = state.targetPagodas ? `${targetProgress}%` : "-";
@@ -237,17 +267,17 @@ function renderPagoda() {
 
   topToBottom.forEach((levelFromBottom, index) => {
     const layer = document.createElement("div");
-    const width = 22 + (index / Math.max(1, levelCount - 1)) * 76;
-    const height = index < 4 ? 27 : index < 9 ? 34 : 42;
+    const config = getLayerConfig(levelFromBottom, index, levelCount);
+    const label = getLevelLabel(levelFromBottom);
     const isFilled = levelFromBottom <= state.currentLevel;
 
-    layer.className = `pagoda-layer${isFilled ? " is-filled" : ""}`;
-    layer.style.setProperty("--w", `${width}%`);
-    layer.style.setProperty("--h", `${height}px`);
+    layer.className = `pagoda-layer pagoda-layer--${config.type}${isFilled ? " is-filled" : ""}`;
+    layer.style.setProperty("--w", `${config.width}%`);
+    layer.style.setProperty("--h", `${config.height}px`);
     layer.style.setProperty("--delay", `${index * 18}ms`);
-    layer.title = `Level ${levelFromBottom}`;
+    layer.title = `${label} - Level ${levelFromBottom}`;
     layer.innerHTML = `
-      <span>${formatNumber(levelFromBottom)}</span>
+      <span class="pagoda-label">${escapeHtml(label)}</span>
     `;
     fragment.append(layer);
   });
@@ -265,7 +295,7 @@ function renderLevelGrid() {
     tile.classList.toggle("is-active", level === state.currentLevel + 1 && state.currentLevel < state.levelsPerPagoda);
     tile.innerHTML = `
       <strong>${formatNumber(level)}</strong>
-      <span>${level <= state.currentLevel ? "Done" : "Level"}</span>
+      <span>${escapeHtml(getLevelLabel(level))}</span>
     `;
     fragment.append(tile);
   }
@@ -331,6 +361,7 @@ function buildSummaryText() {
     state.projectName,
     state.note,
     `Current level: ${state.currentLevel} / ${state.levelsPerPagoda}`,
+    `Current section: ${state.currentLevel ? getLevelLabel(state.currentLevel) : "-"}`,
     `Completed pagodas: ${state.completedPagodas}`,
     `Total levels counted: ${getTotalLevels()}`,
     `Target pagodas: ${state.targetPagodas || "No target"}`,
@@ -373,28 +404,44 @@ function exportReportPng() {
 
 function drawExportPagoda(ctx, x, y, width, height, fillStyle) {
   const levels = state.levelsPerPagoda;
-  const gap = 5;
-  const layerHeight = Math.max(18, (height - levels * gap) / levels);
+  const gap = 4;
+  const topToBottom = Array.from({ length: levels }, (_, index) => levels - index);
+  const totalUnitHeight = topToBottom.reduce((sum, levelFromBottom, index) => {
+    return sum + getLayerConfig(levelFromBottom, index, levels).height;
+  }, 0);
+  const scale = (height - levels * gap) / totalUnitHeight;
 
   ctx.save();
   ctx.translate(x, y);
 
-  for (let index = 0; index < levels; index += 1) {
-    const levelFromBottom = levels - index;
-    const layerWidth = width * (0.24 + (index / Math.max(1, levels - 1)) * 0.74);
+  let layerY = 0;
+  for (let index = 0; index < topToBottom.length; index += 1) {
+    const levelFromBottom = topToBottom[index];
+    const config = getLayerConfig(levelFromBottom, index, levels);
+    const layerWidth = width * (config.width / 100);
+    const layerHeight = Math.max(18, config.height * scale);
     const layerX = (width - layerWidth) / 2;
-    const layerY = index * (layerHeight + gap);
     const filled = levelFromBottom <= state.currentLevel;
+    const label = getLevelLabel(levelFromBottom);
+    const isSharp = config.type === "spire" || config.type === "upper";
 
-    roundedRect(ctx, layerX, layerY, layerWidth, layerHeight, 8, filled ? fillStyle : "#f4e1a3", "#b98518");
+    if (isSharp) {
+      trapezoid(ctx, layerX, layerY, layerWidth, layerHeight, filled ? fillStyle : "#f0d17a", "#b98518");
+    } else {
+      roundedRect(ctx, layerX, layerY, layerWidth, layerHeight, 10, filled ? fillStyle : "#ead09a", "#b98518");
+    }
+
     ctx.fillStyle = filled ? "#2d1c05" : "#80642a";
-    ctx.font = '800 22px "Segoe UI", Arial, sans-serif';
+    ctx.font = `800 ${layerHeight < 28 ? 17 : 21}px "Myanmar Text", Arial, sans-serif`;
     ctx.textAlign = "center";
-    ctx.fillText(String(levelFromBottom), width / 2, layerY + layerHeight * 0.67);
+    ctx.textBaseline = "middle";
+    drawCenteredWrappedText(ctx, label, width / 2, layerY + layerHeight / 2, Math.max(40, layerWidth - 22), layerHeight < 34 ? 18 : 23);
+    layerY += layerHeight + gap;
   }
 
   ctx.restore();
   ctx.textAlign = "start";
+  ctx.textBaseline = "alphabetic";
 }
 
 function drawExportMetrics(ctx, x, y, width) {
@@ -461,6 +508,27 @@ function roundedRect(ctx, x, y, width, height, radius, fill, stroke) {
   }
 }
 
+function trapezoid(ctx, x, y, width, height, fill, stroke) {
+  const shoulder = Math.min(width * 0.18, 30);
+  ctx.beginPath();
+  ctx.moveTo(x + shoulder, y);
+  ctx.lineTo(x + width - shoulder, y);
+  ctx.lineTo(x + width, y + height);
+  ctx.lineTo(x, y + height);
+  ctx.closePath();
+
+  if (fill) {
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+
+  if (stroke) {
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+}
+
 function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
   const words = String(text).split(/\s+/);
   let line = "";
@@ -478,6 +546,75 @@ function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
   });
 
   if (line) ctx.fillText(line, x, currentY);
+}
+
+function drawCenteredWrappedText(ctx, text, centerX, centerY, maxWidth, lineHeight) {
+  const lines = [];
+  const words = String(text).split(/\s+/).filter(Boolean);
+  let line = "";
+
+  words.forEach((word) => {
+    const candidate = line ? `${line} ${word}` : word;
+    if (ctx.measureText(candidate).width > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = candidate;
+    }
+  });
+
+  if (line) lines.push(line);
+
+  const firstY = centerY - ((lines.length - 1) * lineHeight) / 2;
+  lines.forEach((wrappedLine, index) => {
+    ctx.fillText(wrappedLine, centerX, firstY + index * lineHeight);
+  });
+}
+
+function getLevelLabel(levelFromBottom) {
+  const normalizedLevel = Math.max(1, Math.round(toNumber(levelFromBottom, 1)));
+  return state.levelLabels[normalizedLevel - 1] || `အဆင့် ${formatNumber(normalizedLevel)}`;
+}
+
+function normalizeLevelLabels(labels) {
+  const savedLabels = Array.isArray(labels) ? labels : [];
+  const cleanLabels = savedLabels.map((label) => String(label || "").trim());
+  const nextLabels = DEFAULT_LEVEL_LABELS.map((label, index) => cleanLabels[index] || label);
+
+  cleanLabels.slice(DEFAULT_LEVEL_LABELS.length).forEach((label, index) => {
+    nextLabels[DEFAULT_LEVEL_LABELS.length + index] = label || `အဆင့် ${formatNumber(DEFAULT_LEVEL_LABELS.length + index + 1)}`;
+  });
+
+  return nextLabels;
+}
+
+function getLayerConfig(levelFromBottom, topIndex, levelCount) {
+  if (levelCount === DEFAULT_LEVEL_LABELS.length) {
+    const configs = [
+      { width: 98, height: 30, type: "base" },
+      { width: 96, height: 30, type: "base" },
+      { width: 94, height: 30, type: "base" },
+      { width: 84, height: 28, type: "plinth" },
+      { width: 76, height: 28, type: "plinth" },
+      { width: 68, height: 28, type: "plinth" },
+      { width: 72, height: 52, type: "bell-base" },
+      { width: 72, height: 52, type: "bell-mid" },
+      { width: 65, height: 50, type: "bell-crown" },
+      { width: 48, height: 26, type: "neck" },
+      { width: 40, height: 26, type: "neck" },
+      { width: 31, height: 25, type: "neck" },
+      { width: 26, height: 40, type: "upper" },
+      { width: 23, height: 40, type: "upper" },
+      { width: 18, height: 38, type: "upper" },
+      { width: 14, height: 30, type: "spire" },
+    ];
+
+    return configs[levelFromBottom - 1];
+  }
+
+  const width = 22 + (topIndex / Math.max(1, levelCount - 1)) * 76;
+  const height = topIndex < 4 ? 30 : topIndex < 9 ? 36 : 42;
+  return { width, height, type: topIndex > levelCount - 4 ? "base" : "neck" };
 }
 
 function getTodayKey() {

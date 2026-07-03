@@ -227,7 +227,7 @@ h1 {
 }
 
 .pagoda-panel {
-  min-height: 640px;
+  min-height: 720px;
   overflow: hidden;
   box-shadow: var(--shadow);
 }
@@ -235,35 +235,25 @@ h1 {
 .pagoda-stage {
   position: relative;
   display: grid;
-  min-height: 640px;
+  min-height: 720px;
   place-items: center;
   align-content: center;
-  gap: 18px;
+  gap: 16px;
   overflow: hidden;
   padding: 24px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(255, 250, 240, 0.98)),
-    linear-gradient(135deg, rgba(255, 243, 184, 0.42), rgba(255, 255, 255, 0.1));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(255, 250, 240, 0.98)),
+    linear-gradient(135deg, rgba(255, 243, 184, 0.42), rgba(229, 246, 239, 0.22));
 }
 
 .pagoda-aura {
-  position: absolute;
-  top: 40px;
-  left: 50%;
-  width: min(520px, 88%);
-  height: 520px;
-  transform: translateX(-50%);
-  background:
-    linear-gradient(90deg, transparent 0 48%, rgba(214, 154, 18, 0.12) 48% 52%, transparent 52%),
-    linear-gradient(0deg, transparent 0 48%, rgba(214, 154, 18, 0.12) 48% 52%, transparent 52%);
-  clip-path: polygon(50% 0, 90% 20%, 100% 50%, 90% 80%, 50% 100%, 10% 80%, 0 50%, 10% 20%);
-  pointer-events: none;
+  display: none;
 }
 
 .pagoda-flag {
   position: absolute;
   z-index: 2;
-  top: 62px;
+  top: 54px;
   left: calc(50% + 14px);
   width: 86px;
   height: 58px;
@@ -285,25 +275,27 @@ h1 {
   position: relative;
   z-index: 1;
   display: flex;
-  width: min(720px, 96%);
-  min-height: 480px;
+  width: min(720px, 98%);
+  min-height: 610px;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  gap: 5px;
-  padding: 106px 6px 12px;
+  gap: 4px;
+  isolation: isolate;
+  padding: 92px 4px 8px;
   outline: none;
 }
 
 .golden-pagoda::before {
   position: absolute;
-  top: 26px;
+  z-index: 0;
+  top: 0;
   left: 50%;
-  width: 92px;
-  height: 140px;
+  width: 118px;
+  height: 132px;
   transform: translateX(-50%);
-  background: linear-gradient(180deg, #fff6b9, #e4a91c 56%, #9d6508);
-  clip-path: polygon(50% 0, 66% 24%, 58% 24%, 82% 100%, 18% 100%, 42% 24%, 34% 24%);
+  background: linear-gradient(180deg, #fff8b5, #f8d409 40%, #e6a70c 72%, #9d6508);
+  clip-path: polygon(50% 0, 62% 24%, 58% 24%, 71% 54%, 67% 54%, 92% 100%, 8% 100%, 33% 54%, 29% 54%, 42% 24%, 38% 24%);
   filter: drop-shadow(0 8px 12px rgba(126, 85, 12, 0.24));
   content: "";
 }
@@ -315,19 +307,21 @@ h1 {
 
 .pagoda-layer {
   position: relative;
-  display: grid;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: var(--w);
   min-width: 70px;
   min-height: var(--h);
-  place-items: center;
   overflow: hidden;
   border: 1px solid rgba(155, 101, 14, 0.38);
-  border-radius: 8px;
+  border-radius: 7px;
   background: linear-gradient(180deg, #fff5cf, #efd892);
   box-shadow:
     inset 0 1px rgba(255, 255, 255, 0.8),
     0 8px 15px rgba(114, 75, 11, 0.08);
-  color: rgba(65, 44, 8, 0.64);
+  color: #4b3107;
   font-weight: 900;
   transition:
     background 180ms ease var(--delay),
@@ -346,6 +340,16 @@ h1 {
   transition: opacity 180ms ease var(--delay);
 }
 
+.pagoda-layer::after {
+  position: absolute;
+  inset: 1px auto 1px 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.32), transparent);
+  content: "";
+  opacity: 0.7;
+}
+
 .pagoda-layer.is-filled {
   color: #2b1b03;
   transform: translateY(-1px);
@@ -355,10 +359,70 @@ h1 {
   opacity: 1;
 }
 
-.pagoda-layer span {
+.pagoda-label {
   position: relative;
   z-index: 1;
-  font-size: 0.82rem;
+  width: 92%;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: 0.72rem;
+  line-height: 1.18;
+  text-align: center;
+  text-shadow: 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.pagoda-layer--base {
+  border-radius: 3px;
+  background: linear-gradient(180deg, #ffe46a, #f4b700 72%, #d69005);
+}
+
+.pagoda-layer--base .pagoda-label {
+  font-size: 0.84rem;
+}
+
+.pagoda-layer--plinth,
+.pagoda-layer--neck {
+  border-radius: 11px;
+}
+
+.pagoda-layer--plinth {
+  background: linear-gradient(180deg, #f7dd9f, #dcb16b);
+}
+
+.pagoda-layer--neck {
+  background: linear-gradient(180deg, #f8ddaa, #ddb16f);
+}
+
+.pagoda-layer--bell-crown {
+  border-radius: 50% 50% 8px 8px / 82% 82% 8px 8px;
+  background: linear-gradient(180deg, #f3cf90, #d6a45f);
+}
+
+.pagoda-layer--bell-mid {
+  border-radius: 3px;
+  background: linear-gradient(180deg, #e8bf7b, #d7a768);
+}
+
+.pagoda-layer--bell-base {
+  border-radius: 3px 3px 42% 42% / 3px 3px 54% 54%;
+  background: linear-gradient(180deg, #ddb06c, #e8c48b);
+}
+
+.pagoda-layer--upper,
+.pagoda-layer--spire {
+  border-radius: 4px;
+  background: linear-gradient(180deg, #ffef6a, #edbe13 58%, #c98507);
+  clip-path: polygon(16% 0, 84% 0, 100% 100%, 0 100%);
+}
+
+.pagoda-layer--upper .pagoda-label,
+.pagoda-layer--spire .pagoda-label {
+  width: 84%;
+  font-size: 0.68rem;
+}
+
+.pagoda-layer--spire {
+  min-width: 84px;
 }
 
 .tap-button {
@@ -441,6 +505,8 @@ h1 {
 
 .level-tile span {
   font-size: 0.72rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .level-tile.is-active {
@@ -544,6 +610,11 @@ h2 {
   margin-bottom: 12px;
 }
 
+.section-labels-input {
+  min-height: 188px;
+  line-height: 1.55;
+}
+
 .field-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -640,7 +711,7 @@ h2 {
 
   .pagoda-panel,
   .pagoda-stage {
-    min-height: 540px;
+    min-height: 660px;
   }
 
   .pagoda-stage {
@@ -648,7 +719,7 @@ h2 {
   }
 
   .golden-pagoda {
-    min-height: 420px;
+    min-height: 570px;
     width: 100%;
   }
 
@@ -676,7 +747,16 @@ h2 {
     font-size: 0.88rem;
   }
 
-  .pagoda-layer span {
-    font-size: 0.72rem;
+  .pagoda-label {
+    font-size: 0.66rem;
+  }
+
+  .pagoda-layer--base .pagoda-label {
+    font-size: 0.76rem;
+  }
+
+  .pagoda-layer--upper .pagoda-label,
+  .pagoda-layer--spire .pagoda-label {
+    font-size: 0.58rem;
   }
 }
